@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+REPOSITORY = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPOSITORY / "lib"))
+from files import atomic_write, encode, read_bytes
+
+parser = argparse.ArgumentParser(description="Record staged config paths for installation without Git.")
+parser.add_argument("--check", action="store_true", help="Refuse an out-of-date source manifest")
+options = parser.parse_args()
+tracked = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "ls-files", "-z", "--", "config"],
+                         cwd=REPOSITORY, capture_output=True, check=True).stdout.decode().split("\0")
+manifest = encode(sorted(str(Path(name).relative_to("config")) for name in tracked if name))
+path = REPOSITORY / "source-files.json"
+if read_bytes(path) != manifest:
+    if options.check:
+        sys.exit("Source manifest changed. Stage new config paths and run bin/source-files.")
+    atomic_write(path, manifest)
+    print("Updated source-files.json from staged config paths.")

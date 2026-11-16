@@ -1,0 +1,153 @@
+{
+  "id": "root",
+  "cloned_from": {
+    "name": "main",
+    "version": "0.1.11"
+  },
+  "type": "column",
+  "children": [
+    {
+      "id": "center-titlebar",
+      "type": "block",
+      "content": {
+        "mod": "command-center",
+        "props": {
+          "role": "titlebar"
+        }
+      },
+      "size": {
+        "px": 38
+      },
+      "window_drag": true
+    },
+    {
+      "id": "center-body",
+      "type": "row",
+      "children": [
+        {
+          "id": "principal-home",
+          "type": "column",
+          "children": [
+            {
+              "id": "principal-heading",
+              "type": "block",
+              "content": {
+                "mod": "command-center",
+                "props": {
+                  "role": "principal"
+                }
+              },
+              "size": {
+                "px": 40
+              }
+            },
+            {
+              "id": "principal-pots",
+              "type": "block",
+              "content": {
+                "mod": "pots"
+              }
+            }
+          ],
+          "size": {
+            "weight": 3
+          },
+          "min": 300,
+          "background": "background",
+          "border": {
+            "width": 1,
+            "color": "border"
+          },
+          "radius": 10,
+          "resizable": false
+        },
+        {
+          "id": "overview",
+          "type": "column",
+          "children": [
+            {
+              "id": "thread-list",
+              "type": "block",
+              "content": {
+                "mod": "command-center",
+                "props": {
+                  "role": "threads"
+                }
+              },
+              "size": {
+                "weight": 1.350000023841858
+              },
+              "min": 220,
+              "background": "background",
+              "border": {
+                "width": 1,
+                "color": "border"
+              },
+              "radius": 10
+            },
+            {
+              "id": "thread-board",
+              "type": "block",
+              "content": {
+                "mod": "command-center",
+                "props": {
+                  "role": "board"
+                }
+              },
+              "size": {
+                "weight": 1
+              },
+              "min": 160,
+              "background": "background",
+              "border": {
+                "width": 1,
+                "color": "border"
+              },
+              "radius": 10
+            }
+          ],
+          "size": {
+            "weight": 1
+          },
+          "min": 420,
+          "gap": 10
+        }
+      ],
+      "padding": 10,
+      "gap": 10,
+      "resizable": true
+    },
+    {
+      "id": "usage-mount",
+      "type": "block",
+      "content": {
+        "mod": "usage",
+        "props": {
+          "role": "poller"
+        }
+      },
+      "size": {
+        "px": 0
+      }
+    }
+  ],
+  "background": "canvas",
+  "theme": {
+    "light": "catppuccin-latte",
+    "dark": "graphite"
+  },
+  "terminal_padding": [
+    14,
+    12
+  ],
+  "divider": {
+    "width": 1,
+    "color": "border"
+  },
+  "titlebar": "none",
+  "traffic_lights": [
+    12,
+    16
+  ],
+  "preview": "layouts/command-center.svg"
+}

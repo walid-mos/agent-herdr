@@ -1,0 +1,5 @@
+{
+  "herdr": { "build": "NextNodeSolutions/herdr-config", "origin": "walid-mos/agent-herdr" },
+  "sandbox": { "build": "NextNodeSolutions/agent-sandbox", "origin": "walid-mos/agent-sandbox" },
+  "pi": { "build": "NextNodeSolutions/pi-agent", "origin": "walid-mos/agent-pi" }
+}

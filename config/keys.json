@@ -1,0 +1,24 @@
+{
+  "global": {
+    "primary-k": "mod.open:session-picker"
+  },
+  "mod:session-picker": {
+    "primary-n": "session-picker.new",
+    "alt-up": "session-picker.move-up",
+    "alt-down": "session-picker.move-down",
+    "primary-1": "session-picker.jump-1",
+    "primary-2": "session-picker.jump-2",
+    "primary-3": "session-picker.jump-3",
+    "primary-4": "session-picker.jump-4",
+    "primary-5": "session-picker.jump-5",
+    "primary-6": "session-picker.jump-6",
+    "primary-7": "session-picker.jump-7",
+    "primary-8": "session-picker.jump-8",
+    "primary-9": "session-picker.jump-9"
+  },
+  "pots": {
+    "primary-t": "pots.terminal",
+    "primary-shift-j": "pots.terminal-new",
+    "primary-alt-j": "pots.terminal-next"
+  }
+}

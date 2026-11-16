@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+import argparse
+import ast
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+REPOSITORY = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPOSITORY / "lib"))
+from files import read_json, read_source
+from plan import check_provenance, managed_files
+
+parser = argparse.ArgumentParser(description="Check source syntax and optionally installed native Herdr mods.")
+parser.add_argument("--installed-home", type=Path)
+options = parser.parse_args()
+for path in sorted((REPOSITORY / "config").rglob("*.json")):
+    json.loads(path.read_text())
+for path in sorted(path for path in (REPOSITORY / "config").rglob("*") if path.suffix in (".js", ".mjs")):
+    subprocess.run(["node", "--input-type=module", "--check"], input=path.read_bytes(), check=True)
+for path in sorted([*(REPOSITORY / "lib").glob("*.py"), *(REPOSITORY / "config").rglob("*.py")]):
+    ast.parse(path.read_text(), filename=str(path))
+for name in ("install", "check", "source-files"):
+    path = REPOSITORY / "bin" / name
+    ast.parse(path.read_text(), filename=str(path))
+subprocess.run(["sh", "-n", str(REPOSITORY / "bin/update")], check=True)
+subprocess.run([sys.executable, str(REPOSITORY / "bin/source-files"), "--check"], check=True)
+managed = managed_files(read_source(REPOSITORY), {"sandboxes": [], "controlPath": "/", "usageMachine": "", "usageHome": ""})
+check_provenance(managed, read_json(REPOSITORY / "provenance.json"))
+json.loads((REPOSITORY / "sources.json").read_text())
+print("Source JSON, JavaScript, Python and shell syntax passed.", flush=True)
+if options.installed_home:
+    for folder in sorted((options.installed_home / "mods").iterdir()):
+        if f"mods/{folder.name}/main.js" in managed:
+            subprocess.run(["herdr-app", "check", str(folder)], check=True)
