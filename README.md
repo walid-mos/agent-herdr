@@ -35,7 +35,9 @@ stateDiagram-v2
     Installed --> Planned : source refresh
 ```
 
-The installer owns the files recorded under `.agent-herdr/` inside the target profile. Existing files are adopted only when identical to the desired content or a recorded upstream import. A changed managed file blocks installation before writes. Newly added local files outside the managed list remain yours. Settings and layouts seed missing files and remain local afterward. Herdr initializes its own platform keys. Existing bindings remain. Custom bindings are defined in `config/keys.json`, where `primary` means Cmd on macOS and Ctrl+Shift on Linux. Occupied keys retain their actions. The terminal drawer's bindings are added only in the installed layouts' scopes.
+The installer owns the files recorded under `.agent-herdr/` inside the target profile. Existing files are adopted only when identical to the desired content or a recorded upstream import. A changed managed file blocks installation before writes. Newly added local files outside the managed list remain yours. Settings seed a missing file and remain local afterward. Herdr initializes its own platform keys. Existing bindings remain. Custom bindings are defined in `config/keys.json`, where `primary` means Cmd on macOS and Ctrl+Shift on Linux. Occupied keys retain their actions.
+
+The installer writes no layout. Herdr's shipped `main` layout is the window, as on a fresh install: spaces by machine, the agents list, tabs and panes. A terminal labelled with `herdr.space` and `herdr.tab`, such as a pot worker, shows there with no custom panel. Every custom mod here declares `place: none`, so Herdr docks none of them, and each appears only where a person adds it to a cloned layout. Layouts already in a profile stay as they are.
 
 Pots uses the sandbox pane implementation. The imported Command Center owns its shared UI helpers, and installation copies them into Pots and its terminal mod. It needs no source files from a previous installation. The former dotfiles Pots implementation is replaced only where its recorded import hashes still match. Unrecognized local edits block that replacement.
 

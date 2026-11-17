@@ -23,7 +23,7 @@ The first move to the new public repositories requires a fresh clone because the
 
 ## Inventory and source ownership
 
-The common source includes Command Center, its changes panel, Magpie, the tab bar, the usage panel and its real collector, plus the Studio and newer Command Center seed layouts. These components were previously unmanaged on the desktop and now share one implementation across Macs and desktop SealSkin. Generated type declarations, instruction files and jsconfig are excluded. Adoption hashes identify exact imported files, including the shared helpers previously copied into Pots. No previous source owner is removed by this import. Only paths explicitly listed as retired in provenance.json can be removed on first adoption, and each must match a recorded source hash.
+The common source includes Command Center, its changes panel, Magpie, the tab bar, the usage panel and its real collector. It seeds no layout. These components were previously unmanaged on the desktop and now share one implementation across Macs and desktop SealSkin. Generated type declarations, instruction files and jsconfig are excluded. Adoption hashes identify exact imported files, including the shared helpers previously copied into Pots. No previous source owner is removed by this import. Only paths explicitly listed as retired in provenance.json can be removed on first adoption, and each must match a recorded source hash.
 
 Import every modified live file into source before ownership of that file changes. Until then the installer refuses the edited managed file and preserves live keys and settings. Never add a live file's hash to `provenance.json` to accept stale source as adopted.
 

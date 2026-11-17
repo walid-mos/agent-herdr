@@ -1,11 +1,5 @@
 [
   "keys.json",
-  "layouts/Studio.json",
-  "layouts/Studio.svg",
-  "layouts/command-center.json",
-  "layouts/command-center.svg",
-  "layouts/main-notify.json",
-  "layouts/main-notify.svg",
   "mods/agent-naming/main.js",
   "mods/agent-naming/mod.json",
   "mods/agent-notify/main.js",

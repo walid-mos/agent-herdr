@@ -6,6 +6,7 @@ from files import InstallError, digest, encode, read_bytes, read_json, relative_
 from shortcuts import TERMINAL_MOD, plan_keys
 
 MANAGED_ROOTS = ("mods", "themes")
+SEEDED_SETTINGS = "settings.json"
 GENERATED_NAMES = frozenset(("jsconfig.json", "AGENTS.md", "gpui-kit.d.ts", "herdr.d.ts"))
 SHARED_FOLDER = "mods/command-center"
 TERMINAL_MAIN = f"mods/{TERMINAL_MOD}/main.js"
@@ -126,10 +127,6 @@ def plan_managed(home, managed, previous, provenance):
 
 
 def plan_seeds(source, home):
-    changes = {}
-    for name, content in source.items():
-        if name != "settings.json" and Path(name).parts[0] != "layouts":
-            continue
-        if read_bytes(home / name) is None:
-            changes[name] = {"before": None, "after": content}
-    return {**changes, **plan_keys(source, home)}
+    if read_bytes(home / SEEDED_SETTINGS) is not None:
+        return plan_keys(source, home)
+    return {SEEDED_SETTINGS: {"before": None, "after": source[SEEDED_SETTINGS]}, **plan_keys(source, home)}
