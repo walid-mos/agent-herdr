@@ -14,7 +14,7 @@ def arguments():
     parser = argparse.ArgumentParser(description="Install versioned Herdr files without replacing local edits or layouts.")
     parser.add_argument("--home", required=True, type=Path, help="Absolute Herdr app profile directory")
     parser.add_argument("--profile", required=True, choices=("desktop", "headless"))
-    parser.add_argument("--runtime", type=Path, help="Absolute JSON file containing sandboxes and controlPath")
+    parser.add_argument("--runtime", type=Path, help="Absolute JSON file containing private usage collector settings")
     options = parser.parse_args()
     if not options.home.is_absolute():
         parser.error("--home must be absolute")

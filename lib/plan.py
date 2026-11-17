@@ -3,15 +3,12 @@ import re
 from pathlib import Path
 
 from files import InstallError, digest, encode, read_bytes, read_json, relative_path
-from shortcuts import TERMINAL_MOD, plan_keys
+from shortcuts import plan_keys
 
 MANAGED_ROOTS = ("mods", "themes")
+SHARED_ROOT = "shared"
 SEEDED_SETTINGS = "settings.json"
 GENERATED_NAMES = frozenset(("jsconfig.json", "AGENTS.md", "gpui-kit.d.ts", "herdr.d.ts"))
-SHARED_FOLDER = "mods/command-center"
-TERMINAL_MAIN = f"mods/{TERMINAL_MOD}/main.js"
-TERMINAL_ENTRY = "mods/pots/pots-terminals.js"
-COPIED_FROM = {posixpath.dirname(TERMINAL_MAIN): posixpath.dirname(TERMINAL_ENTRY)}
 RELATIVE_IMPORT = re.compile(rb'(?:from|import)\s*\(?\s*["\'](\.\.?/[^"\']+)["\']')
 MODULE_SUFFIXES = (".js", ".mjs")
 
@@ -23,31 +20,14 @@ def is_clean_name(value):
 def load_runtime(path):
     runtime = read_json(path)
     if not isinstance(runtime, dict):
-        raise InstallError("Runtime must be a JSON object containing sandboxes and controlPath.")
-    sandboxes = runtime.get("sandboxes")
-    control = runtime.get("controlPath")
+        raise InstallError("Runtime must be a JSON object.")
     usage_machine = runtime.get("usageMachine", "")
     usage_home = runtime.get("usageHome", "")
     if not isinstance(usage_home, str) or "\x00" in usage_home or (usage_home and not Path(usage_home).is_absolute()):
         raise InstallError("usageHome must be an absolute collector profile path, or empty for the remote default.")
     if not is_clean_name(usage_machine):
         raise InstallError("usageMachine must be a machine name without surrounding spaces, or empty for local collection.")
-    if not isinstance(sandboxes, list) or not isinstance(control, str) or not Path(control).is_absolute():
-        raise InstallError("Runtime needs sandboxes array and absolute controlPath.")
-    machines = set()
-    for sandbox in sandboxes:
-        if not isinstance(sandbox, dict) or set(sandbox) != {"machine", "bot"}:
-            raise InstallError("Each sandbox needs exactly machine and bot strings.")
-        if not all(is_clean_name(value) for value in sandbox.values()):
-            raise InstallError("Sandbox machine and bot must be strings without NUL or surrounding spaces.")
-        if not sandbox["bot"]:
-            raise InstallError("Bot must be nonempty. Use an empty machine string for the local sandbox.")
-        if sandbox["machine"] in machines:
-            raise InstallError("Sandbox machine names must be unique.")
-        machines.add(sandbox["machine"])
-    if "\x00" in control:
-        raise InstallError("controlPath must not contain NUL.")
-    return {"sandboxes": sandboxes, "controlPath": control, "usageMachine": usage_machine, "usageHome": usage_home}
+    return {"usageMachine": usage_machine, "usageHome": usage_home}
 
 
 def constants_module(constants):
@@ -57,16 +37,13 @@ def constants_module(constants):
 def managed_files(source, runtime):
     managed = {name: content for name, content in source.items()
                if Path(name).parts[0] in MANAGED_ROOTS and Path(name).name not in GENERATED_NAMES}
-    managed["mods/pots/runtime.js"] = constants_module({"SANDBOXES": runtime["sandboxes"], "CONTROL": runtime["controlPath"]})
     managed["mods/usage/runtime.js"] = constants_module({"SOURCE_MACHINE": runtime["usageMachine"], "SOURCE_HOME": runtime["usageHome"]})
-    if TERMINAL_MAIN in managed:
-        raise InstallError(f"config/{TERMINAL_MAIN} collides with the copy of {TERMINAL_ENTRY}. Remove it from config.")
-    managed[TERMINAL_MAIN] = managed[TERMINAL_ENTRY]
-    return link_imports(managed)
+    shared = {posixpath.basename(name): content for name, content in source.items() if posixpath.dirname(name) == SHARED_ROOT}
+    return link_imports(managed, shared)
 
 
-def link_imports(managed):
-    """Herdr loads each mod from its own folder, so a missing sibling module is copied from the mod it derives from or the shared folder."""
+def link_imports(managed, shared):
+    """Herdr loads each mod from its own folder, so a missing sibling module is copied from config/shared."""
     linked, pending = dict(managed), sorted(name for name in managed if name.endswith(MODULE_SUFFIXES))
     while pending:
         importer = pending.pop()
@@ -76,12 +53,10 @@ def link_imports(managed):
                 raise InstallError(f"{importer} imports {name} from outside its mod folder, which Herdr cannot load.")
             if name in linked:
                 continue
-            folder = posixpath.dirname(name)
-            origins = [f"{origin}/{posixpath.basename(name)}" for origin in (COPIED_FROM.get(folder), SHARED_FOLDER) if origin]
-            origin = next((origin for origin in origins if origin in linked), None)
-            if folder != posixpath.dirname(importer) or origin is None:
+            module = shared.get(posixpath.basename(name))
+            if posixpath.dirname(name) != posixpath.dirname(importer) or module is None:
                 raise InstallError(f"{importer} imports missing {name}.")
-            linked[name] = linked[origin]
+            linked[name] = module
             pending.append(name)
     return linked
 

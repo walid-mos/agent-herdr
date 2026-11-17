@@ -14,7 +14,7 @@ A change that weakens one is wrong, even when it compiles.
 
 ## Architecture rules
 
-- **Keep source separate from the writable profile.** Herdr rewrites shipped files and the drawer writes layouts.
+- **Keep source separate from the writable profile.** Herdr rewrites shipped files and saves layout clicks.
 - **Put installation IO behind the file operations module.** Plans must validate every managed target before applying changes.
 - **Read build and final source identities from sources.json.** A clean repository import cannot rely on redirects or shared Git history.
 - **Read docs/cutover.md before changing ownership or installation.** Old writers must stop only after the replacement works.

@@ -1,13 +1,10 @@
 import json
 import re
 import sys
-from pathlib import Path
 
 from files import InstallError, encode, read_bytes
 
 KEY_SEPARATOR = re.compile(r"-(?=.)")
-DRAWER_MOD = "pots"
-TERMINAL_MOD = f"{DRAWER_MOD}-terminals"
 
 
 def native_key(key):
@@ -23,7 +20,7 @@ def chord(key):
 
 
 def occupied_actions(keys, section, shortcut):
-    relevant = set(keys) if section == "global" else {"global", "terminal", section, f"mod:{DRAWER_MOD}", f"mod:{TERMINAL_MOD}"}
+    relevant = set(keys) if section == "global" else {"global", "terminal", section}
     return [action for scope, bindings in keys.items() if scope in relevant
             for key, action in bindings.items() if chord(key) == chord(shortcut)]
 
@@ -37,17 +34,6 @@ def merge_section(keys, section, bindings):
         keys.setdefault(section, {})[key] = command
 
 
-def shows_mod(node, mod):
-    if isinstance(node, dict):
-        return node.get("mod") == mod or any(shows_mod(value, mod) for value in node.values())
-    return isinstance(node, list) and any(shows_mod(value, mod) for value in node)
-
-
-def drawer_layouts(source):
-    return [Path(name).stem for name, content in sorted(source.items())
-            if Path(name).parent == Path("layouts") and name.endswith(".json") and shows_mod(json.loads(content), DRAWER_MOD)]
-
-
 def plan_keys(source, home):
     before = read_bytes(home / "keys.json")
     if before is None:
@@ -55,10 +41,6 @@ def plan_keys(source, home):
     keys = json.loads(before)
     if not isinstance(keys, dict) or any(not isinstance(section, dict) for section in keys.values()):
         raise InstallError("keys.json needs an object of binding sections. File left unchanged.")
-    defaults = json.loads(source["keys.json"])
-    drawer = defaults.pop(DRAWER_MOD)
-    for layout in drawer_layouts(source):
-        defaults[f"layout:{layout}"] = drawer
-    for section, bindings in defaults.items():
+    for section, bindings in json.loads(source["keys.json"]).items():
         merge_section(keys, section, bindings)
     return {} if keys == json.loads(before) else {"keys.json": {"before": before, "after": encode(keys)}}
