@@ -14,7 +14,7 @@ A change that weakens one is wrong, even when it compiles.
 
 ## Architecture rules
 
-- **Keep source separate from the writable profile.** Herdr rewrites shipped files and the drawer writes layouts.
+- **Keep source separate from the writable profile.** Herdr rewrites shipped files and saves layout clicks.
 - **Put installation IO behind the file operations module.** Plans must validate every managed target before applying changes.
 - **Read build and final source identities from sources.json.** A clean repository import cannot rely on redirects or shared Git history.
 - **Read docs/cutover.md before changing ownership or installation.** Old writers must stop only after the replacement works.
@@ -47,4 +47,4 @@ A live Mac install needs a Mac execution route and the operator's cutover instru
 
 ## Extending
 
-Add shared custom mods under config/mods and seed layouts under config/layouts. Stage added or removed config paths and run `python3 bin/source-files` before checking. The installer reads this versioned manifest and ignores untracked files. Keep per-machine inputs in runtime JSON. Add source imports to provenance only after checking the exact source revision and excluding secrets and private machine details.
+Add shared custom mods under config/mods with `place: none`. Herdr's shipped layouts are the views, so config/ holds no layout and the installer seeds none. Stage added or removed config paths and run `python3 bin/source-files` before checking. The installer reads this versioned manifest and ignores untracked files. Keep per-machine inputs in runtime JSON. Add source imports to provenance only after checking the exact source revision and excluding secrets and private machine details.
