@@ -1,17 +1,19 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { taskTransport } from '../config/mods/task-handover/control.js';
 import { SUPPORTED_TASK_VERSION } from '../config/mods/task-handover/task-client.js';
 
-export const SANDBOX_COMMIT = 'ad1c8f58a630ef44d3a04955e62caf986d2539c6';
+export const SANDBOX_COMMIT = '40cdc96b14df80091f418b47cfb04f9e872b8d74';
 const repository = process.env.HERDR_TASK_SANDBOX_SOURCE;
 assert.ok(repository, 'Set HERDR_TASK_SANDBOX_SOURCE to the reviewed PR47 source checkout.');
 const revision = spawnSync('git', ['-C', repository, 'rev-parse', 'HEAD'], { encoding: 'utf8' });
 assert.equal(revision.status, 0, revision.stderr);
 assert.equal(revision.stdout.trim(), SANDBOX_COMMIT, 'Review sandbox source changes before updating the pinned fixture.');
+const pristine = spawnSync('git', ['-C', repository, 'diff', '--quiet', SANDBOX_COMMIT, '--', 'session', 'probes/fixtures']);
+assert.equal(pristine.status, 0, 'Imported sandbox source must match the pinned commit without local edits.');
 export const SANDBOX_CONTROL = join(repository, 'session/control.mjs');
 const source = path => pathToFileURL(join(repository, path)).href;
 const contract = await import(source('session/task-contract.mjs'));
@@ -41,6 +43,17 @@ export function integratedTransport(folder) {
   };
   const transport = taskTransport(host, controlPath);
   return { calls, appHome, transport };
+}
+
+export function diskStorage(folder) {
+  const path = join(folder, 'herdr-local-storage.json');
+  if (!existsSync(path)) writeFileSync(path, '{}');
+  const read = () => JSON.parse(readFileSync(path, 'utf8'));
+  return {
+    path,
+    getItem: key => read()[key] ?? null,
+    setItem: (key, value) => writeFileSync(path, JSON.stringify({ ...read(), [key]: value })),
+  };
 }
 
 export function memoryStorage() {

@@ -6,12 +6,12 @@ const storage = () => {
   const entries = new Map();
   return { getItem: key => entries.get(key) ?? null, setItem: (key, value) => entries.set(key, value), removeItem: key => entries.delete(key) };
 };
-
+const supported = (target = 'synthetic') => ({ version: 2, target, operations: ['task-submit', 'task-select', 'task-adopt'] });
 const draft = { text: 'Produce the synthetic report.', author: 'synthetic-person', reference: 'synthetic-thread' };
 
 test('missing or incompatible capability refuses before intake', async () => {
-  for (const taskContract of [undefined, { version: 2, target: 'synthetic', operations: ['task-submit', 'task-adopt'] },
-    { version: 1, target: 'synthetic', operations: ['task-submit'] }]) {
+  for (const taskContract of [undefined, { ...supported(), version: 1 }, { ...supported(), version: 3 },
+    { ...supported(), operations: ['task-submit', 'task-adopt'] }]) {
     const calls = [];
     const client = new TaskClient({ machine: '', storage: storage(), transport: async (_machine, operation) => {
       calls.push(operation);
@@ -27,7 +27,7 @@ test('lost reply retains the complete original request through reconnect and tar
   const requests = [];
   let target = 'synthetic';
   const transport = async (_machine, operation, request) => {
-    if (operation === 'snapshot') return { taskContract: { version: 1, target, operations: ['task-submit', 'task-adopt'] }, tasks: [] };
+    if (operation === 'snapshot') return { taskContract: supported(target), tasks: [] };
     requests.push(request);
     throw new Error('Synthetic reply lost.');
   };
@@ -47,7 +47,7 @@ test('storage failure prevents intake instead of losing the retry identity', asy
   const client = new TaskClient({ machine: '', storage: { getItem: () => null, setItem: () => { throw new Error('Synthetic storage full.'); } },
     transport: async (_machine, operation) => {
       calls.push(operation);
-      return { taskContract: { version: 1, target: 'synthetic', operations: ['task-submit', 'task-adopt'] }, tasks: [] };
+      return { taskContract: supported(), tasks: [] };
     } });
   await assert.rejects(client.submit(draft), /storage full/);
   assert.deepEqual(calls, ['snapshot']);
@@ -56,7 +56,7 @@ test('storage failure prevents intake instead of losing the retry identity', asy
 test('a stale dialog cannot erase another retained request', async () => {
   const retained = storage();
   const transport = async (_machine, operation, request) => {
-    if (operation === 'snapshot') return { taskContract: { version: 1, target: 'synthetic', operations: ['task-submit', 'task-adopt'] }, tasks: [] };
+    if (operation === 'snapshot') return { taskContract: supported(), tasks: [] };
     return { ...request, owner: 'synthetic', delivery: { state: 'delivered' }, acceptance: { state: 'pending' } };
   };
   const first = new TaskClient({ machine: '', storage: retained, transport });
@@ -72,9 +72,10 @@ test('retained adoption keeps its control endpoint and target after a confirmed 
   let submitted;
   let target = 'synthetic';
   const transport = async (_machine, operation, request) => {
-    if (operation === 'snapshot') return { taskContract: { version: 1, target, operations: ['task-submit', 'task-adopt'] }, tasks: submitted ? [submitted] : [] };
+    if (operation === 'snapshot') return { taskContract: supported(target), tasks: submitted ? [submitted] : [] };
     if (operation === 'task-adopt') throw new Error('Synthetic lost adoption reply.');
-    submitted = { ...request, owner: 'synthetic', delivery: { state: 'delivered' }, acceptance: { state: 'accepted' } };
+    if (operation === 'task-select') submitted = { ...submitted, selection: { terminal: request.terminal, identity: 'synthetic-opaque-selection' } };
+    else submitted = { ...request, owner: 'synthetic', delivery: { state: 'delivered' }, acceptance: { state: 'accepted' } };
     return submitted;
   };
   const client = new TaskClient({ machine: '', controlPath: '/synthetic/control.mjs', storage: retained, transport });

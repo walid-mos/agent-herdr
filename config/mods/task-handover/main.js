@@ -63,7 +63,7 @@ export default class TaskHandover extends View {
     await this.client.refresh();
     const connections = JSON.parse(localStorage.getItem(CONNECTIONS) ?? '{}');
     localStorage.setItem(CONNECTIONS, JSON.stringify({ ...connections, [this.machine]: controlPath }));
-    this.selected = this.client.retained.adoption?.id ?? this.client.retained.submission?.id ?? this.client.snapshot.tasks[0]?.id ?? '';
+    this.selected = this.client.retained.selectionRequest?.id ?? this.client.retained.adoption?.id ?? this.client.retained.submission?.id ?? this.client.snapshot.tasks[0]?.id ?? '';
   }
 
   send(cx) {
@@ -109,18 +109,21 @@ export default class TaskHandover extends View {
   }
 
   adoption(task) {
-    const retained = this.client.retained.adoption;
-    if (retained) return v_flex().w_full().gap(8)
-      .child(text(`Retained adoption ${retained.id} / ${retained.terminal}`))
-      .child(button('task-adopt-retry', 'Retry exact adoption', (_event, cx) => this.perform(cx, () => this.client.retryAdoption()), { isDisabled: this.isBusy }));
+    const request = this.client.retained.selectionRequest;
+    const adoption = this.client.retained.adoption;
+    if (request || adoption) return v_flex().w_full().gap(8)
+      .child(text(`Retained choice ${request?.id ?? adoption.id} / ${request?.terminal ?? 'selection acknowledgment unavailable'}`))
+      .child(text(adoption ? 'The original selection is retained. Retry never chooses a new conversation.' : 'The selection reply is unconfirmed. Recover its saved fingerprint before adoption.'))
+      .child(button('task-adopt-retry', adoption ? 'Retry pinned adoption' : 'Recover selection and adopt',
+        (_event, cx) => this.perform(cx, () => this.client.retryAdoption()), { isDisabled: this.isBusy }));
     if (task.acceptance.state !== 'accepted' || task.execution) return text('The owning coordinator accepts the task and chooses its worker.');
     const available = terminals().filter(terminal => machineOf(terminal.address) === this.machine);
     return v_flex().w_full().gap(8)
-      .child(text('Adopt an existing execution without launching or changing its native parent.'))
+      .child(text('Pin the exact conversation before adoption. No replacement is launched and its native parent stays unchanged.'))
       .children(available.map((terminal, index) => button(`task-terminal-${index}`, terminal.address,
         (_event, cx) => { this.terminal.set_value(localAddress(terminal.address)); cx.notify(); }, { isDisabled: this.isBusy })))
       .child(field('Exact local terminal address', this.terminal))
-      .child(button('task-adopt', 'Adopt exact terminal', (_event, cx) => this.perform(cx,
+      .child(button('task-adopt', 'Pin and adopt exact terminal', (_event, cx) => this.perform(cx,
         () => this.client.adopt(task.id, this.terminal.value())), { isDisabled: this.isBusy }));
   }
 

@@ -40,6 +40,7 @@ export function taskFacts(task) {
     .child(text(`Delivery: ${task.delivery.state}`))
     .child(text(`Acceptance: ${task.acceptance.state}`))
     .children(fact('Coordinator reason', task.acceptance.reason))
+    .children(fact('Pinned terminal', task.selection?.terminal))
     .child(text(task.text))
     .child(text(`Claimed provenance: ${task.provenance.source} / ${task.provenance.author} / ${task.provenance.reference}`))
     .when(Boolean(execution), element => element.children(executionFacts(execution)));
