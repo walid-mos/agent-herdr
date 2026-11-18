@@ -8,7 +8,6 @@ import { summaryOf, failedSummary } from "./summary.js";
 import { ago, when } from "./format.js";
 import { notice, sectionLabel, STALE_AFTER_MS } from "./parts.js";
 
-// Command Center reads these keys: the summary for its top-bar button, the open dropdown to toggle it, the press that dismissed it.
 const STATE_KEY = "usage.state";
 const OPEN_KEY = "usage.open";
 const DISMISSED_KEY = "usage.dismissed";

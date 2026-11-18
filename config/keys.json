@@ -16,10 +16,5 @@
     "primary-7": "session-picker.jump-7",
     "primary-8": "session-picker.jump-8",
     "primary-9": "session-picker.jump-9"
-  },
-  "pots": {
-    "primary-t": "pots.terminal",
-    "primary-shift-j": "pots.terminal-new",
-    "primary-alt-j": "pots.terminal-next"
   }
 }
