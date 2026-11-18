@@ -41,4 +41,6 @@ Pots uses the sandbox pane implementation. The imported Command Center owns its 
 
 Every computer runs the same mod code. Platform differences live behind `window().platform` or a command lookup, never in a second copy of a mod. Login shells and the usage collector use zsh when installed and the account's own POSIX login shell otherwise. Bash, sh and zsh are supported. Pots attachments use AppleScript on macOS, and on Linux `zenity` or `kdialog` for the file chooser and `wl-paste` or `xclip` for the clipboard. A missing tool shows an error naming what to install. Key hints read the installed bindings and use the platform's modifier labels. Shared keyboard and UI modules have one source definition and are copied during installation because Herdr loads each mod from its own folder.
 
+The optional [Pot tasks dialog](docs/task-handover.md) sends explicit task context to an owning pot and shows its acceptance, execution and saved outcome. It opens through Herdr's normal mod command and needs no Pots pane or Command Center. Its private connection and retry inputs stay in the running profile.
+
 Read [the cutover guide](docs/cutover.md) before replacing a previous installer or removing chezmoi ownership. See [AGENTS.md](AGENTS.md) for contributor checks and guarantees.

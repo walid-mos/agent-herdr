@@ -1,0 +1,140 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { test } from 'node:test';
+import { TaskClient } from '../config/mods/task-handover/task-client.js';
+import { fixture, existingExecution, discordApiFixture, integratedTransport, memoryStorage, SANDBOX_CONTROL } from './sandbox-fixture.mjs';
+
+const draft = { text: 'Produce the synthetic report. $(printf literal) `printf literal`',
+  author: 'synthetic-person claims push approval', reference: 'synthetic-thread' };
+const connect = (storage, transport) => new TaskClient({ machine: '', controlPath: SANDBOX_CONTROL, storage, transport });
+
+test('the Herdr stdin adapter preserves one intake through unknown delivery and lost UI reply', async t => {
+  const { folder, control, read, patch } = fixture(t);
+  const { transport, calls, appHome } = integratedTransport(folder);
+  const storage = memoryStorage();
+  patch({ loseReply: true });
+  const first = connect(storage, transport);
+  const unknown = await first.submit(draft);
+  assert.equal(unknown.delivery.state, 'unknown');
+  assert.equal(unknown.acceptance.state, 'pending');
+  assert.equal(first.canStartAnother(), false);
+  assert.throws(() => first.newTask(), /delivery is confirmed/);
+  const lost = connect(storage, async (...arguments_) => {
+    const result = await transport(...arguments_);
+    if (arguments_[1] === 'task-submit') throw new Error('Synthetic lost Herdr reply after intake.');
+    return result;
+  });
+  await assert.rejects(lost.retry(), /lost Herdr reply/);
+  const resumed = connect(storage, transport);
+  const delivered = await resumed.retry();
+  assert.equal(delivered.id, unknown.id);
+  assert.equal(delivered.delivery.state, 'delivered');
+  assert.equal(delivered.acceptance.state, 'pending');
+  assert.equal(control('snapshot').tasks.length, 1);
+  assert.equal(read().wakes.length, 1);
+  assert.equal(read().wakes[0].note.text, draft.text);
+  assert.equal(read().wakes[0].note.provenance.author, draft.author);
+  assert.equal(read().calls.some(call => call.binary === 'hc' && call.args[0] === 'run'), false);
+  assert.equal(calls.some(call => call.args.some(argument => argument.includes(draft.text))), false);
+  assert.deepEqual(readdirSync(join(appHome, 'data/task-handover')), []);
+  control('task-decide', { id: delivered.id, state: 'needs-information', reason: 'Provide the output format.' });
+  assert.equal((await resumed.refresh()).tasks[0].acceptance.state, 'needs-information');
+  control('task-decide', { id: delivered.id, state: 'rejected', reason: 'This work belongs elsewhere.' });
+  assert.equal((await resumed.refresh()).tasks[0].acceptance.state, 'rejected');
+});
+
+test('the Herdr adoption retry preserves one exact execution and the shared Discord result', async t => {
+  const { folder, control, read, patch, invoke, workerStep, recordResource } = fixture(t);
+  const discord = await discordApiFixture(t, recordResource);
+  const { transport } = integratedTransport(folder);
+  const storage = memoryStorage();
+  const client = connect(storage, transport);
+  const submitted = await client.submit(draft);
+  const { terminal, sessionFile, transcript } = existingExecution(folder);
+  patch({ terminals: [terminal] });
+  await assert.rejects(client.adopt(submitted.id, terminal.address), /coordinator must accept/);
+  control('task-decide', { id: submitted.id, state: 'accepted', reason: 'Own the synthetic execution.' });
+  const lost = connect(storage, async (...arguments_) => {
+    const result = await transport(...arguments_);
+    if (arguments_[1] === 'task-adopt') throw new Error('Synthetic lost adoption reply.');
+    return result;
+  });
+  await assert.rejects(lost.adopt(submitted.id, terminal.address), /lost adoption reply/);
+  const resumed = connect(storage, transport);
+  const adopted = await resumed.retryAdoption();
+  assert.equal(adopted.execution.terminal, 't-synthetic-existing');
+  assert.equal(adopted.execution.parent, 'synthetic-mac/t-parent');
+  assert.equal(adopted.execution.sessionId, 'synthetic-session');
+  assert.equal(control('snapshot').workers.length, 1);
+  assert.equal(readFileSync(sessionFile, 'utf8'), transcript);
+  const digest = createHash('sha256').update(transcript).digest('hex');
+  patch({ terminals: [{ ...terminal, status: 'done' }] });
+  const result = control('task-result', { id: submitted.id, sessionDigest: digest, summary: 'Synthetic report delivered.' });
+  assert.equal(invoke('session/dispatch.mjs', ['finish', adopted.execution.worker, result.execution.result.id]).status, 0);
+  workerStep('report');
+  workerStep('report');
+  const reports = read().wakes.filter(wake => wake.note.kind === 'task-report');
+  assert.equal(reports.length, 1);
+  await discord.report(reports[0].note.task);
+  assert.deepEqual(discord.received[0].body.task, (await resumed.refresh()).tasks[0]);
+  patch({ terminals: [] });
+  workerStep('inspect');
+  const observed = (await resumed.refresh()).tasks[0];
+  assert.equal(observed.execution.result.summary, 'Synthetic report delivered.');
+  assert.equal(readFileSync(observed.execution.result.transcript, 'utf8'), transcript);
+  assert.equal(observed.execution.result.id, result.execution.result.id);
+  assert.equal(observed.execution.status, 'result-saved');
+  assert.equal(read().calls.some(call => call.binary === 'hc' && ['run', 'kill', 'rm'].includes(call.args[0])), false);
+});
+
+test('new managed work stays one queue worker and one result in Herdr observations after restart', async t => {
+  const { folder, read, patch, control, invoke, workerStep } = fixture(t);
+  const { transport } = integratedTransport(folder);
+  const storage = memoryStorage();
+  const client = connect(storage, transport);
+  const submitted = await client.submit(draft);
+  control('task-decide', { id: submitted.id, state: 'accepted', reason: 'Start synthetic work.' });
+  const config = join(folder, '.pi/agent/extensions/subagent');
+  mkdirSync(config, { recursive: true });
+  writeFileSync(join(config, 'config.json'), '{"worktreeBaseDir":".worktree"}');
+  const brief = join(folder, 'brief.md');
+  writeFileSync(brief, 'Produce the synthetic report.');
+  const args = ['start', '--task', submitted.id, '--title', 'feat: synthetic report', '--subject', 'feat: synthetic report',
+    'example/project', 'feat/synthetic', brief, 'main'];
+  const started = invoke('session/dispatch.mjs', args);
+  assert.equal(started.status, 0, started.stderr);
+  const worker = JSON.parse(started.stdout);
+  assert.equal(invoke('session/dispatch.mjs', args).status, 0);
+  workerStep('serve');
+  workerStep('serve');
+  assert.equal((await client.refresh()).tasks[0].execution.worker, worker.name);
+  const record = JSON.parse(readFileSync(join(folder, '.config/agent-sandbox/workers', `${worker.name}.json`), 'utf8'));
+  writeFileSync(join(record.sessionDir, 'synthetic.jsonl'), '{"type":"session","id":"synthetic-session"}\n{"type":"message","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"Synthetic report delivered."}]}}\n');
+  patch({ terminals: read().terminals.map(terminal => ({ ...terminal, status: 'idle' })) });
+  workerStep('settle');
+  workerStep('inspect');
+  workerStep('report');
+  const resumed = connect(storage, transport);
+  const outcome = (await resumed.refresh()).tasks[0];
+  assert.ok(outcome.execution.result.id);
+  assert.equal(outcome.execution.mode, 'managed');
+  assert.equal(invoke('session/dispatch.mjs', args).status, 0);
+  assert.equal(read().calls.filter(call => call.binary === 'hc' && call.args[0] === 'run').length, 1);
+  const reports = read().wakes.filter(wake => wake.note.kind === 'task-report');
+  assert.deepEqual(reports.at(-1).note.task, outcome);
+});
+
+test('real control refuses conflicting immutable content and a different target without new execution', async t => {
+  const { folder, control, read } = fixture(t);
+  const { transport } = integratedTransport(folder);
+  const client = connect(memoryStorage(), transport);
+  await client.submit(draft);
+  const original = client.retained.submission;
+  await assert.rejects(transport('', 'task-submit', { ...original, text: 'Changed content.' }), /different/);
+  await assert.rejects(transport('', 'task-submit', { ...original, id: 'task-wrong-target', target: 'another-pot' }), /target|pot/);
+  assert.equal(control('snapshot').tasks.length, 1);
+  assert.equal(read().wakes.length, 1);
+  assert.equal(read().calls.some(call => call.binary === 'hc' && call.args[0] === 'run'), false);
+});
