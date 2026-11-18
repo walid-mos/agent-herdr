@@ -32,13 +32,23 @@ function fact(label, value) {
   return value === undefined ? [] : [text(`${label}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)];
 }
 
+function timeFact(label, milliseconds) {
+  if (typeof milliseconds !== 'number') return [];
+  const time = new Date(milliseconds);
+  return Number.isFinite(time.getTime()) ? fact(label, time.toISOString()) : [];
+}
+
 export function taskFacts(task) {
   const execution = task.execution;
   return v_flex().w_full().gap(6)
     .child(text(`Task ${task.id}`).font_semibold())
     .child(text(`Owner: ${task.owner}`))
     .child(text(`Delivery: ${task.delivery.state}`))
+    .children(fact('Intake receipt', task.receipt))
+    .children(timeFact('Received at (UTC)', task.receivedAt))
     .child(text(`Acceptance: ${task.acceptance.state}`))
+    .children(fact('Decision by', task.acceptance.by))
+    .children(timeFact('Decision at (UTC)', task.acceptance.at))
     .children(fact('Coordinator reason', task.acceptance.reason))
     .children(fact('Pinned terminal', task.selection?.terminal))
     .child(text(task.text))
