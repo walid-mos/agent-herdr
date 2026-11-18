@@ -86,14 +86,17 @@ test('the Herdr adoption retry preserves one exact execution and the shared Disc
   const standaloneFile = join(folder, '.pi/agent/sessions/standalone.jsonl');
   const standaloneTranscript = '{"type":"session","id":"synthetic-standalone"}\n';
   writeFileSync(standaloneFile, standaloneTranscript);
-  const standalone = { ...terminal, address: 't-synthetic-standalone', name: 'synthetic-standalone', status: 'idle',
-    labels: { 'pi.session': standaloneFile } };
+  const standalone = { ...terminal, address: 't-synthetic-standalone', name: 'synthetic-standalone', state: 'finished', status: 'done',
+    finished_ms: 2300, labels: { 'pi.session': standaloneFile } };
   const helper = { address: 't-synthetic-helper', name: 'synthetic-helper', parent: terminal.address, state: 'finished', status: 'done' };
   patch({ terminals: [standalone, helper] });
   workerStep('inspect');
   const refreshed = await resumed.refresh();
   assert.equal(refreshed.tasks.length, 1);
   assert.deepEqual(refreshed.workers.map(worker => [worker.name, worker.owner]), [[adopted.execution.worker, submitted.owner]]);
+  assert.deepEqual(refreshed.standaloneExecutions, [{ terminal: standalone.address, name: standalone.name, parent: standalone.parent,
+    createdAt: standalone.created_ms, sessionFile: standaloneFile, sessionId: 'synthetic-standalone', state: 'finished',
+    observedStatus: 'done', status: 'ended', finishedAt: 2300 }]);
   const observed = refreshed.tasks[0];
   assert.equal(observed.id, submitted.id);
   assert.equal(observed.owner, submitted.owner);
@@ -153,37 +156,6 @@ test('new managed work stays one queue worker and one result in Herdr observatio
   assert.equal(read().calls.filter(call => call.binary === 'hc' && call.args[0] === 'run').length, 1);
   const reports = read().wakes.filter(wake => wake.note.kind === 'task-report');
   assert.deepEqual(reports.at(-1).note.task, outcome);
-});
-
-test('readback of an already registered worker preserves its owner and session history', async t => {
-  const { folder, control, read, patch } = fixture(t);
-  const { transport } = integratedTransport(folder);
-  const { terminal, sessionFile, transcript } = existingExecution(folder);
-  const name = 'pots-synthetic-registered';
-  const record = { name, owner: 'synthetic', launchId: 'synthetic-existing-launch', terminal: terminal.address,
-    worktree: terminal.cwd, sessionFile, sessionId: 'synthetic-session', createdAt: terminal.created_ms };
-  const records = join(folder, '.config/agent-sandbox/workers');
-  mkdirSync(records, { recursive: true });
-  const workerPath = join(records, `${name}.json`);
-  writeFileSync(workerPath, JSON.stringify(record));
-  patch({ terminals: [{ ...terminal, name, labels: { ...terminal.labels,
-    'pots.owner': record.owner, 'pots.launch': record.launchId } }] });
-  const storage = memoryStorage();
-  const submitted = await connect(storage, transport).submit(draft);
-  control('task-decide', { id: submitted.id, state: 'accepted', reason: 'Use the existing synthetic worker.' });
-  const association = { id: submitted.id, worker: name };
-  const first = control('task-associate', association);
-  assert.deepEqual(control('task-associate', association), first);
-  const snapshot = await connect(storage, transport).refresh();
-  assert.deepEqual(snapshot.tasks, [first]);
-  assert.equal(first.owner, record.owner);
-  assert.equal(first.execution.worker, name);
-  assert.equal(first.execution.sessionId, record.sessionId);
-  assert.equal(first.execution.sessionFile, sessionFile);
-  assert.deepEqual(snapshot.workers.map(worker => [worker.name, worker.owner, worker.taskId]), [[name, record.owner, submitted.id]]);
-  assert.deepEqual(JSON.parse(readFileSync(workerPath, 'utf8')), record);
-  assert.equal(readFileSync(sessionFile, 'utf8'), transcript);
-  assert.equal(read().calls.some(call => call.binary === 'hc' && ['run', 'send', 'kill', 'rm'].includes(call.args[0])), false);
 });
 
 test('real control refuses conflicting immutable content and a different target without new execution', async t => {

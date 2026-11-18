@@ -58,14 +58,36 @@ export function taskFacts(task) {
 
 function executionFacts(execution) {
   return [
-    ...fact('Worker', execution.worker), ...fact('Execution', execution.mode), ...fact('Observed status', execution.status),
+    ...fact('Worker', execution.worker), ...fact('Execution', execution.mode), ...fact('Execution status', execution.status),
+    ...fact('Terminal status', execution.observedStatus), ...waitFacts(execution.wait),
     ...fact('Terminal', execution.terminal), ...fact('Conversation', execution.sessionId), ...fact('Session file', execution.sessionFile),
     ...fact('Native parent', execution.parent), ...fact('Failure', execution.failure), ...fact('Branch', execution.branch),
     ...fact('Commit', execution.commit), ...fact('Uncommitted', execution.uncommitted), ...fact('Unpushed', execution.unpushed),
     ...fact('Clean pass', execution.cleanPass), ...fact('Pull request', execution.pullRequest),
-    ...execution.deliveries.map(delivery => text(`Follow-up ${delivery.id}: ${delivery.state}`)),
+    ...execution.deliveries.map(delivery => text(`Follow-up ${delivery.id}: ${delivery.state}${delivery.sentTo ? ` / launch ${delivery.sentTo}` : ''}`)),
     ...resultFacts(execution.result),
   ];
+}
+
+function waitFacts(wait) {
+  if (!wait) return [];
+  return [
+    ...fact('Wait kind', wait.kind), ...fact('Wait owner', wait.owner), ...timeFact('Wait started (UTC)', wait.startedAt),
+    ...fact('Broker dialog', wait.dialog), ...fact('Requested action', wait.action),
+    ...fact('Notice ID', wait.delivery?.id), ...fact('Notice delivery', wait.delivery?.state),
+  ];
+}
+
+export function standaloneFacts(observation) {
+  return v_flex().w_full().gap(6)
+    .child(text(observation.name ?? observation.terminal).font_semibold())
+    .children([
+      ...fact('Terminal', observation.terminal), ...fact('Native parent', observation.parent),
+      ...fact('Conversation', observation.sessionId), ...fact('Session file', observation.sessionFile),
+      ...fact('Terminal state', observation.state), ...fact('Terminal status', observation.observedStatus),
+      ...fact('Observation status', observation.status), ...timeFact('Started (UTC)', observation.createdAt),
+      ...timeFact('Ended (UTC)', observation.finishedAt),
+    ]);
 }
 
 function resultFacts(result) {

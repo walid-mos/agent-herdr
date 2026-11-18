@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { taskTransport } from '../config/mods/task-handover/control.js';
 import { SUPPORTED_TASK_VERSION } from '../config/mods/task-handover/task-client.js';
 
-export const SANDBOX_COMMIT = '40cdc96b14df80091f418b47cfb04f9e872b8d74';
+export const SANDBOX_COMMIT = 'c19f8dd32cdf5a702666ccb473250fd10d783e34';
 const repository = process.env.HERDR_TASK_SANDBOX_SOURCE;
 assert.ok(repository, 'Set HERDR_TASK_SANDBOX_SOURCE to the reviewed PR47 source checkout.');
 const revision = spawnSync('git', ['-C', repository, 'rev-parse', 'HEAD'], { encoding: 'utf8' });

@@ -3,7 +3,7 @@ import { InputState, TextareaState, v_flex } from 'gpui-base';
 import { appHome, closeOverlay, exec, machines, props, run, terminals, theme, writeTextFile } from 'herdr';
 import { TaskClient } from './task-client.js';
 import { taskTransport } from './control.js';
-import { button, contextField, field, row, taskFacts, text, TYPE } from './presentation.js';
+import { button, contextField, field, row, standaloneFacts, taskFacts, text, TYPE } from './presentation.js';
 
 const REFRESH_MS = 5000;
 const CONNECTIONS = 'herdr.task-handover.connections';
@@ -137,6 +137,7 @@ export default class TaskHandover extends View {
   render() {
     const tasks = this.client?.snapshot.tasks ?? [];
     const selected = tasks.find(task => task.id === this.selected);
+    const standalone = this.client?.snapshot.standaloneExecutions ?? [];
     return v_flex().id('task-handover').track_focus(this.handle).w_full().max_h(720).min_h(0).p(16).gap(12)
       .bg(theme().popover).text_size(TYPE.body).on_key_down(event => {
         if (event.key === 'escape') closeOverlay(props().overlay);
@@ -155,6 +156,9 @@ export default class TaskHandover extends View {
         .when(!tasks.length, element => element.child(text('No task facts observed. An unavailable connection does not prove that a submission was absent.')))
         .children(tasks.map((task, index) => button(`task-select-${index}`, `${task.id} / ${task.acceptance.state}`,
           (_event, cx) => { this.selected = task.id; cx.notify(); }, { isDisabled: this.isBusy })))
-        .when(Boolean(selected), element => element.child(this.details(selected))));
+        .when(Boolean(selected), element => element.child(this.details(selected)))
+        .when(Boolean(standalone.length), element => element
+          .child(text('Standalone observations').font_semibold())
+          .children(standalone.map(standaloneFacts))));
   }
 }
