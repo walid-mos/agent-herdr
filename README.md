@@ -41,4 +41,6 @@ Discord manages the pots, so Command Center and the Pots pane are retired. The i
 
 Every computer runs the same mod code. Platform differences live behind `window().platform` or a command lookup, never in a second copy of a mod. The usage collector uses zsh when installed and the account's own POSIX login shell otherwise. Bash, sh and zsh are supported. Key hints read the installed bindings and use the platform's modifier labels. A module that several mods import lives once in `config/shared`, and installation copies it into each importing mod because Herdr loads each mod from its own folder.
 
+The optional [Pot tasks dialog](docs/task-handover.md) sends explicit task context to an owning pot and shows its acceptance, execution and saved outcome. It opens through Herdr's normal mod command and needs no Pots pane or Command Center. Its private connection and retry inputs stay in the running profile.
+
 Read [the cutover guide](docs/cutover.md) before replacing a previous installer or removing chezmoi ownership. See [AGENTS.md](AGENTS.md) for contributor checks and guarantees.

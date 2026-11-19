@@ -1,6 +1,7 @@
 {
   "global": {
-    "primary-k": "mod.open:session-picker"
+    "primary-k": "mod.open:session-picker",
+    "primary-shift-h": "mod.open:task-handover"
   },
   "mod:session-picker": {
     "primary-n": "session-picker.new",
