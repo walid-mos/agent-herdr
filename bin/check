@@ -25,7 +25,7 @@ for name in ("install", "check", "source-files"):
     ast.parse(path.read_text(), filename=str(path))
 subprocess.run(["sh", "-n", str(REPOSITORY / "bin/update")], check=True)
 subprocess.run([sys.executable, str(REPOSITORY / "bin/source-files"), "--check"], check=True)
-managed = managed_files(read_source(REPOSITORY), {"usageMachine": "", "usageHome": ""})
+managed = managed_files(read_source(REPOSITORY))
 check_provenance(managed, read_json(REPOSITORY / "provenance.json"))
 json.loads((REPOSITORY / "sources.json").read_text())
 print("Source JSON, JavaScript, Python and shell syntax passed.", flush=True)
