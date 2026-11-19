@@ -35,7 +35,7 @@ Fill **Task context**, **Claimed author** and **Source reference**, then choose 
 
 Select a task to see its owner, intake receipt and time, delivery, acceptance, coordinator decision and time, execution and saved result references. Execution status comes from the owning pot and appears beside the raw terminal status. Wait details show the owner and start time when reported. For human waits, the dialog also shows the broker action and notice delivery. The broker handles the response. Follow-up delivery shows the receipt state reported by the pot.
 
-**Standalone observations** shows the Pi conversations the pot currently observes outside its worker registry, including ended conversations still visible to it. Herdr's terminal history remains the place to find sessions and helpers after the pot stops seeing them.
+**Standalone observations** shows the Pi conversations the pot observes outside its worker registry, including ended conversations it still exposes. Herdr's terminal history remains the place to find sessions and helpers after the pot stops seeing them.
 
 **Refresh task facts** observes again. The open connected dialog also refreshes while it has no failed observation or outstanding request. A failed observation leaves the last successful facts visible and labels the failure. Silence or terminal disappearance never becomes completion in Herdr.
 
