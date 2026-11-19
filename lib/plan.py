@@ -3,7 +3,6 @@ import re
 from pathlib import Path
 
 from files import InstallError, digest, read_bytes, read_json, relative_path
-from shortcuts import plan_keys
 
 MANAGED_ROOTS = ("mods", "themes")
 SHARED_ROOT = "shared"
@@ -84,7 +83,7 @@ def plan_managed(home, managed, previous, provenance):
     return changes
 
 
-def plan_seeds(source, home):
+def plan_settings(source, home):
     if read_bytes(home / SEEDED_SETTINGS) is not None:
-        return plan_keys(source, home)
-    return {SEEDED_SETTINGS: {"before": None, "after": source[SEEDED_SETTINGS]}, **plan_keys(source, home)}
+        return {}
+    return {SEEDED_SETTINGS: {"before": None, "after": source[SEEDED_SETTINGS]}}

@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from files import InstallError, apply_changes, atomic_write, digest, encode, read_json, read_source, real_parent, safe_path
-from plan import check_provenance, check_runtime, managed_files, plan_managed, plan_seeds
+from plan import check_provenance, check_runtime, managed_files, plan_managed, plan_settings
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 STATE = ".agent-herdr"
@@ -33,7 +33,7 @@ def install_locked(home):
     managed = managed_files(source)
     check_provenance(managed, provenance)
     changes = plan_managed(home, managed, previous, provenance)
-    changes.update(plan_seeds(source, home))
+    changes.update(plan_settings(source, home))
     apply_changes(home, changes)
     receipt = {name: digest(managed[name]) for name in sorted(managed)}
     if receipt != previous:
