@@ -2,7 +2,7 @@ import posixpath
 import re
 from pathlib import Path
 
-from files import InstallError, digest, encode, read_bytes, read_json, relative_path
+from files import InstallError, digest, read_bytes, read_json, relative_path
 from shortcuts import plan_keys
 
 MANAGED_ROOTS = ("mods", "themes")
@@ -13,31 +13,14 @@ RELATIVE_IMPORT = re.compile(rb'(?:from|import)\s*\(?\s*["\'](\.\.?/[^"\']+)["\'
 MODULE_SUFFIXES = (".js", ".mjs")
 
 
-def is_clean_name(value):
-    return isinstance(value, str) and "\x00" not in value and value == value.strip()
-
-
-def load_runtime(path):
-    runtime = read_json(path)
-    if not isinstance(runtime, dict):
+def check_runtime(path):
+    if not isinstance(read_json(path), dict):
         raise InstallError("Runtime must be a JSON object.")
-    usage_machine = runtime.get("usageMachine", "")
-    usage_home = runtime.get("usageHome", "")
-    if not isinstance(usage_home, str) or "\x00" in usage_home or (usage_home and not Path(usage_home).is_absolute()):
-        raise InstallError("usageHome must be an absolute collector profile path, or empty for the remote default.")
-    if not is_clean_name(usage_machine):
-        raise InstallError("usageMachine must be a machine name without surrounding spaces, or empty for local collection.")
-    return {"usageMachine": usage_machine, "usageHome": usage_home}
 
 
-def constants_module(constants):
-    return b"".join(b"export const " + name.encode() + b" = " + encode(value).rstrip() + b";\n" for name, value in constants.items())
-
-
-def managed_files(source, runtime):
+def managed_files(source):
     managed = {name: content for name, content in source.items()
                if Path(name).parts[0] in MANAGED_ROOTS and Path(name).name not in GENERATED_NAMES}
-    managed["mods/usage/runtime.js"] = constants_module({"SOURCE_MACHINE": runtime["usageMachine"], "SOURCE_HOME": runtime["usageHome"]})
     shared = {posixpath.basename(name): content for name, content in source.items() if posixpath.dirname(name) == SHARED_ROOT}
     return link_imports(managed, shared)
 
